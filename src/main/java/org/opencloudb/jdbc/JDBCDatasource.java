@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import com.alibaba.druid.pool.DruidDataSource;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
@@ -54,7 +55,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setPool(this);
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
-		
+
 		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
                 .nextProcessor();
 		c.setProcessor(processor);
@@ -77,23 +78,26 @@ public class JDBCDatasource extends PhysicalDatasource {
     Connection getConnection() throws SQLException
     {
         DBHostConfig cfg = getConfig();
-		Connection connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
-		String initSql=getHostConfig().getConnectionInitSql();
-		if(initSql!=null&&!"".equals(initSql))
-		{     Statement statement =null;
-			try
-			{
-				 statement = connection.createStatement();
-				 statement.execute(initSql);
-			}finally
-			{
-				if(statement!=null)
-				{
-					statement.close();
-				}
-			}
-		}
-		return connection;
+        DruidDataSource ds = new DruidDataSource();
+        ds.setUrl(cfg.getUrl());
+        ds.setUsername(cfg.getUser());
+        ds.setPassword(cfg.getPassword());
+
+        Connection connection = ds.getConnection();
+
+        String initSql = getHostConfig().getConnectionInitSql();
+        if (initSql != null && !"".equals(initSql)) {
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
+                statement.execute(initSql);
+            } finally {
+                if (statement != null) {
+                    statement.close();
+                }
+            }
+        }
+        return connection;
     }
 
 
